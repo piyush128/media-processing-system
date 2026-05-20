@@ -1,0 +1,26 @@
+{
+  "name": "api-service",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1046.0",
+    "@aws-sdk/s3-request-presigner": "^3.1046.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "kafkajs": "^2.2.4",
+    "pg": "^8.20.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

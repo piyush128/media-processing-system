@@ -1,0 +1,59 @@
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { HeadObjectCommand } from '@aws-sdk/client-s3';
+import { publishEvent } from '../kafka/producer.js';
+import s3 from '../config/minio.js';
+import { pool } from '../config/db.js';
+
+export async function getPresignedUrl(req, res) {
+    try {     
+        const { fileName, fileType, userId } = req.body;
+        if (!fileName || !fileType || !userId) {
+            return res.status(400).json({ error: 'fileName, fileType, userId are required' });
+          } 
+        const fileKey = `${userId}-${Date.now()}-${fileName}`;
+        const command = new PutObjectCommand({
+            Bucket: process.env.MINIO_BUCKET,
+            Key: fileKey,
+            ContentType: fileType,
+          });      
+        const url = await getSignedUrl(s3, command, { expiresIn: 900 });
+        await pool.query(
+            'INSERT INTO media_files (user_id, file_url) VALUES ($1, $2)',
+            [userId, fileKey]
+          );          
+        return res.status(200).json({ presignedUrl: url, fileKey });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+}
+
+export async function getUserMedia(req, res) {
+    try {     
+        const { userId } = req.params;
+        const result =  await pool.query(
+            'select file_url from media_files where user_id = $1',
+            [userId]
+          );
+        const files = result.rows.map(row => ({
+            fileUrl: `${process.env.MINIO_ENDPOINT}/${process.env.MINIO_BUCKET}/${row.file_url}`
+          }));
+          return res.status(200).json({ files });          
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+}
+
+export async function confirmUpload(req, res) {
+    try {     
+        const { userId, fileKey } = req.body;
+        const file = await s3.send(new HeadObjectCommand({
+            Bucket: process.env.MINIO_BUCKET,
+            Key: fileKey
+          }));
+        await publishEvent('media.uploaded', {userId, fileKey});
+        return res.status(200).json({ message: 'Upload confirmed', userId, fileKey });          
+    } catch (error) {
+        return res.status(400).json({ error: error.message });
+    }
+}
