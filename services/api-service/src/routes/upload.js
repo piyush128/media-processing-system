@@ -3,11 +3,11 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { publishEvent } from '../kafka/producer.js';
 import s3 from '../config/minio.js';
 import { pool } from '../config/db.js';
-import e from 'express';
 
 export async function getPresignedUrl(req, res) {
     try {     
-        const { fileName, fileType, userId } = req.body;
+        const { fileName, fileType, userId, title } = req.body;
+
         if (!fileName || !fileType || !userId) {
             return res.status(400).json({ error: 'fileName, fileType, userId are required' });
           } 
@@ -19,8 +19,8 @@ export async function getPresignedUrl(req, res) {
           });      
         const url = await getSignedUrl(s3, command, { expiresIn: 900 });
         await pool.query(
-            'INSERT INTO media_files (user_id, file_url) VALUES ($1, $2)',
-            [userId, fileKey]
+            'INSERT INTO media_files (user_id, file_url, title) VALUES ($1, $2, $3)',
+            [userId, fileKey, title || fileName]
           );          
         return res.status(200).json({ presignedUrl: url, fileKey });
     } catch (error) {
@@ -104,6 +104,20 @@ export async function completeMultipartUpload(req, res) {
       return res.status(200).json({ message: 'Upload complete', fileKey });
     } catch (error) {
       return res.status(500).json({ error: error.message });
+    }
+}
+  
+export async function searchMedia(req, res) {
+    try {
+        const { query } = req.query;
+        const result = await pool.query(`SELECT * FROM media_files WHERE search_vector @@ plainto_tsquery('english', $1)`,[query]);
+        const files = result.rows.map(row => ({
+            title: row.title,
+            fileUrl: `${process.env.CDN_URL}/${process.env.MINIO_BUCKET}/${row.file_url}`
+        }));
+        return res.status(200).json({ files });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
     }
   }
   

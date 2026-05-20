@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import { connectDB } from './config/db.js';
-import { getPresignedUrl, getUserMedia, confirmUpload, startMultipartUpload, getPartUrl, completeMultipartUpload } from './routes/upload.js';
+import { getPresignedUrl, getUserMedia, confirmUpload, startMultipartUpload, getPartUrl, completeMultipartUpload, searchMedia } from './routes/upload.js';
 import { connectProducer } from './kafka/producer.js';
 
 const app = express();
@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.post('/upload/presigned-url', getPresignedUrl);
+app.get('/media/search', searchMedia);
 app.get('/media/:userId', getUserMedia);
 app.post('/upload/confirm', confirmUpload);
 app.post('/upload/multipart/start', startMultipartUpload);
