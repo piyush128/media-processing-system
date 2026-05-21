@@ -104,7 +104,7 @@ media-processing-system/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/media-processing-system.git
+git clone https://github.com/piyush128/media-processing-system.git
 cd media-processing-system
 ```
 
@@ -259,8 +259,3 @@ uploaded ──► processing ──► ready
 - `ready` — processing complete, file available for delivery
 - `failed` — processing failed, eligible for retry via reconciliation job
 
----
-
-## License
-
-MIT
